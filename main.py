@@ -1380,4 +1380,58 @@ def tool_submit_fnol(req: SubmitFnolRequest):
     return finish(result, created=created)
 
 
-@app.post("/to
+@app.post("/tools/find-vendors", operation_id="find_vendors", tags=["tools"],
+          summary="List available vendors for Towing, GlassRepair or Inspection, nearest first")
+def tool_find_vendors(req: FindVendorsRequest):
+    return finish(find_vendors(req.service_type_cd, req.city, req.state_prov_cd))
+
+
+@app.post("/tools/request-service", operation_id="request_service", tags=["tools"],
+          summary="Request Towing, GlassRepair or Inspection for a submitted claim")
+def tool_request_service(req: RequestServiceRequest):
+    result = request_service(
+        req.claim_number,
+        req.service_type_cd,
+        req.vendor_id,
+        req.destination_addr_line1,
+        req.destination_city,
+        req.destination_state,
+        req.destination_postal_code,
+    )
+    created = isinstance(result, dict) and "error" not in result
+    return finish(result, created=created)
+
+
+@app.post("/tools/acknowledge-claim", operation_id="acknowledge_claim", tags=["tools"],
+          summary="Assign the adjuster and notify the primary contact. Reported becomes Open")
+def tool_acknowledge(req: AcknowledgeClaimRequest):
+    return finish(acknowledge_claim(req.claim_number, req.adjuster_id))
+
+
+@app.post("/tools/escalate-to-human", operation_id="escalate_to_human", tags=["tools"],
+          summary="Hand the case to a human with a reason and a summary of what was captured")
+def tool_escalate(req: EscalateRequest):
+    return finish(escalate_to_human(req.identifier, req.reason_cd, req.summary))
+
+
+@app.post("/tools/resolve-escalation", operation_id="resolve_escalation", tags=["tools"],
+          summary="Approve an escalation to resume the claim, or reject it to close the claim")
+def tool_resolve(req: ResolveEscalationRequest):
+    return finish(
+        resolve_escalation(req.identifier, req.approved, req.notes, req.escalation_id)
+    )
+
+
+mcp = FastApiMCP(
+    app,
+    name="Personal Auto FNOL",
+    description=app.description,
+    include_tags=["tools", "resources", "data"],
+)
+mcp.mount_http()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
