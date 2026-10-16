@@ -14,6 +14,8 @@ from typing import Any, Dict, List
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from fastapi_mcp import FastApiMCP
+
 
 SERVER_URL = os.environ.get("SERVER_URL", "https://YOUR-APP-NAME.onrender.com")
 
@@ -274,3 +276,7 @@ def delete_record(collection: str, record_id: str):
     if not removed:
         raise HTTPException(status_code=404, detail="Record not found")
     return {"deleted": True, "id": record_id}
+
+
+mcp = FastApiMCP(app, name="Data & Extraction Tools")
+mcp.mount_http()
